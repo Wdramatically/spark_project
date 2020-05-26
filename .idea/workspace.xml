@@ -1,19 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="188219a2-080b-4f4d-a00b-912082625641" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/MockData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/MockData.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/SessionAggrStatAccumulator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/SessionAggrStatAccumulator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/util/DateUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/util/DateUtils.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/my.properties" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/my.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/MockData.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/MockData.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/dao/factory/DAOFactory.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/dao/factory/DAOFactory.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/util/DateUtils.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/ibeifeng/sparkproject/util/DateUtils.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/my.properties" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/my.properties" afterDir="false" />
-    </list>
+    <list default="true" id="188219a2-080b-4f4d-a00b-912082625641" name="Default Changelist" comment="" />
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -60,8 +48,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
-              <caret line="64" lean-forward="true" selection-start-line="64" selection-end-line="64" />
+            <state relative-caret-position="160">
+              <caret line="60" column="41" selection-start-line="60" selection-start-column="41" selection-end-line="60" selection-end-column="41" />
               <folding>
                 <element signature="n#!!doc" expanded="true" />
                 <element signature="imports" expanded="true" />
@@ -74,7 +62,7 @@
         <entry file="file://$PROJECT_DIR$/src/main/resources/my.properties">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="225">
-              <caret line="9" selection-start-line="9" selection-end-line="9" />
+              <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
             </state>
           </provider>
         </entry>
@@ -102,42 +90,6 @@
                 <element signature="e#772#773#0" expanded="true" />
                 <element signature="e#816#817#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="jar://$MAVEN_REPOSITORY$/org/apache/spark/spark-core_2.10/1.5.1/spark-core_2.10-1.5.1-sources.jar!/org/apache/spark/api/java/JavaRDDLike.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="134">
-              <caret line="444" column="23" lean-forward="true" selection-start-line="444" selection-start-column="23" selection-end-line="444" selection-end-column="23" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="jar://$MAVEN_REPOSITORY$/org/apache/spark/spark-core_2.10/1.5.1/spark-core_2.10-1.5.1-sources.jar!/org/apache/spark/api/java/JavaPairRDD.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="126">
-              <caret line="97" column="8" selection-start-line="97" selection-start-column="8" selection-end-line="97" selection-end-column="8" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="jar://$MAVEN_REPOSITORY$/org/apache/spark/spark-core_2.10/1.5.1/spark-core_2.10-1.5.1-sources.jar!/org/apache/spark/rdd/RDD.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="126">
-              <caret line="329" column="40" selection-start-line="329" selection-start-column="40" selection-end-line="329" selection-end-column="40" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="jar://$MAVEN_REPOSITORY$/org/apache/spark/spark-core_2.10/1.5.1/spark-core_2.10-1.5.1-sources.jar!/org/apache/spark/rdd/RDDOperationScope.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="172">
-              <caret line="99" column="7" selection-start-line="99" selection-start-column="7" selection-end-line="99" selection-end-column="7" />
             </state>
           </provider>
         </entry>
@@ -359,7 +311,7 @@
     <property name="SearchEverywhereHistoryKey" value="&#9;FILE&#9;file://G:/wrokspace/sparkproject/src/main/resources/my.properties" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1590483076189" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1590483445454" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/pom.xml" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
@@ -445,19 +397,18 @@
       <workItem from="1590296331285" duration="1756000" />
       <workItem from="1590298166178" duration="12722000" />
       <workItem from="1590372448766" duration="32563000" />
-      <workItem from="1590453562794" duration="22919000" />
+      <workItem from="1590453562794" duration="23413000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="74506000" />
+    <option name="totallyTimeSpent" value="75000000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.7079439" visible="true" weight="0.2680965" />
-      <window_info id="Structure" order="1" sideWeight="0.29205608" side_tool="true" visible="true" weight="0.2680965" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.70725995" visible="true" weight="0.2680965" />
+      <window_info id="Structure" order="1" sideWeight="0.29274005" side_tool="true" weight="0.2680965" />
       <window_info id="Image Layers" order="2" />
       <window_info id="Designer" order="3" />
       <window_info id="UI Designer" order="4" />
@@ -466,13 +417,13 @@
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3286119" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.4212766" />
-      <window_info anchor="bottom" id="Debug" order="3" visible="true" weight="0.3929078" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.3929078" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Version Control" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Terminal" order="9" weight="0.7808023" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="9" visible="true" weight="0.39432624" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
       <window_info anchor="bottom" id="Messages" order="11" weight="0.3295129" />
       <window_info anchor="bottom" id="Java Enterprise" order="12" />
@@ -498,15 +449,9 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.java</url>
-          <line>243</line>
+          <line>242</line>
           <properties />
           <option name="timeStamp" value="45" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.java</url>
-          <line>58</line>
-          <properties />
-          <option name="timeStamp" value="48" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
@@ -912,13 +857,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/util/StringUtils.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="309">
-          <caret line="72" selection-start-line="72" selection-end-line="72" />
-        </state>
-      </provider>
-    </entry>
     <entry file="jar://$MAVEN_REPOSITORY$/org/apache/spark/spark-core_2.10/1.5.1/spark-core_2.10-1.5.1-sources.jar!/org/apache/spark/rdd/RDDOperationScope.scala">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="172">
@@ -970,6 +908,13 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/resources/my.properties">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/constant/Constants.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="126">
@@ -977,17 +922,17 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/resources/my.properties">
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/util/StringUtils.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="9" selection-start-line="9" selection-end-line="9" />
+        <state relative-caret-position="309">
+          <caret line="72" selection-start-line="72" selection-end-line="72" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/ibeifeng/sparkproject/spark/session/UserVisitSessionAnalyzeSpark.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="64" lean-forward="true" selection-start-line="64" selection-end-line="64" />
+        <state relative-caret-position="160">
+          <caret line="60" column="41" selection-start-line="60" selection-start-column="41" selection-end-line="60" selection-end-column="41" />
           <folding>
             <element signature="n#!!doc" expanded="true" />
             <element signature="imports" expanded="true" />
