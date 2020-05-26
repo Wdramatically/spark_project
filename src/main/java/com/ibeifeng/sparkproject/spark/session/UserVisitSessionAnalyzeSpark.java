@@ -17,6 +17,7 @@ import com.ibeifeng.sparkproject.dao.factory.DAOFactory;
 import com.ibeifeng.sparkproject.domain.SessionAggrStat;
 import com.ibeifeng.sparkproject.domain.Task;
 import com.ibeifeng.sparkproject.util.*;
+import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
@@ -37,10 +38,11 @@ import java.util.Iterator;
 
 public class UserVisitSessionAnalyzeSpark {
     public static void main(String[] args) {
-        SparkConf conf = new SparkConf().setAppName(Constants.SPARK_APP_NAME_SESSION).setMaster("local[2]");
+
+        SparkConf conf = new SparkConf().setAppName(Constants.SPARK_APP_NAME_SESSION).setMaster("local[1]");
         JavaSparkContext sc = new JavaSparkContext(conf);
         SQLContext sqlContext = getSQLContext(sc.sc());
-
+        sc.setLogLevel("WARN");
         mockData(sc,sqlContext);
 
         //从user_visit_action表中查询出来指定日期范围内的行为数据
@@ -57,10 +59,16 @@ public class UserVisitSessionAnalyzeSpark {
         //从user_visit_action表中，查询出指定日期范围内的行为数据
         JavaRDD<Row> actionRDD = getActionRDDByDateRange(sqlContext, taskParam);
         JavaPairRDD<String, String> sessionid2FullAggrInfoRDD = aggregateBySession(actionRDD, sqlContext);
-        //重构过滤方法，同时统计合法session
-        Accumulator<String> sessionAggrStatAccumulator = sc.accumulator("",new SessionAggrStatAccumulator());
-        JavaPairRDD<String, String> filteredSessionid2AddrStat = filterSessionAndAggrStat(sessionid2FullAggrInfoRDD, taskParam, sessionAggrStatAccumulator);
+        // 重构，同时进行过滤和统计
 
+        Accumulator<String> sessionAggrStatAccumulator = sc.accumulator("", new SessionAggrStatAccumulator());
+
+        JavaPairRDD<String, String> filteredSessionid2AggrInfoRDD = filterSessionAndAggrStat(
+                sessionid2FullAggrInfoRDD, taskParam, sessionAggrStatAccumulator);
+        System.out.println(filteredSessionid2AggrInfoRDD.count());
+
+
+        calculateAndPersistAggrStat(sessionAggrStatAccumulator.value(),task.getTaskid());
 
         sc.close();
     }
@@ -98,16 +106,15 @@ public class UserVisitSessionAnalyzeSpark {
         String startDate = ParamUtils.getParam(taskParam,Constants.PARAM_START_DATE);
         String stopDate = ParamUtils.getParam(taskParam,Constants.PARAM_END_DATE);
         String sql = "select * " +
-                "from user_visit_action" +
-                "where date >= '" + startDate +"'" +
-                "AND DATE <= '" + stopDate + "'";
+                "from user_visit_action " +
+                "where date >= '" + startDate +"' " +
+                "and date <= '" + stopDate + "'";
         DataFrame actionDF = sqlContext.sql(sql);
-
         return actionDF.javaRDD();
     }
 
     /**
-     * 
+     *
      * @param actionRdd  行为数据RDD
      * @return  session粒度聚合数据
      */
@@ -120,7 +127,7 @@ public class UserVisitSessionAnalyzeSpark {
         });
         //按sessionid进行分组
         JavaPairRDD<String,Iterable<Row>> sessionid2ActionsRDD = sessionid2ActionRDD.groupByKey();
-        
+
         JavaPairRDD<Long,String> userid2PartAggrInfoRDD =  sessionid2ActionsRDD.mapToPair(new PairFunction<Tuple2<String, Iterable<Row>>, Long, String>() {
             @Override
             public Tuple2<Long, String> call(Tuple2<String, Iterable<Row>> stringIterableTuple2) throws Exception {
@@ -153,6 +160,7 @@ public class UserVisitSessionAnalyzeSpark {
                            clickCategoryIdsBuffer.append(clickCategoryId);
                        }
                    }
+                   //System.out.println("此次解析的日期："+ row.getString(4));
                    Date activeTime = DateUtils.parseTime(row.getString(4));
 
                    if (startTime == null){
@@ -169,6 +177,9 @@ public class UserVisitSessionAnalyzeSpark {
                    }
 
                    stepLength++;
+                   /*System.out.println("stepLength:"+stepLength);
+                   System.out.println("startTime:" + startTime);
+                   System.out.println("endTime:" + endTime);*/
                    }
                    String searchKeywords = StringUtils.trimComma(searchKeywordsBuffer.toString());
                     String clickCategoryIds = StringUtils.trimComma(clickCategoryIdsBuffer.toString());
@@ -218,10 +229,16 @@ public class UserVisitSessionAnalyzeSpark {
 
 
 
-    private  static JavaPairRDD<String,String> filterSessionAndAggrStat(
-            JavaPairRDD<String,String> sessionid2AggrInfoRDD,
+    /**
+     * 过滤session数据，并进行聚合统计
+     * @param sessionid2AggrInfoRDD
+     * @return
+     */
+    private static JavaPairRDD<String, String> filterSessionAndAggrStat(
+            JavaPairRDD<String, String> sessionid2AggrInfoRDD,
             final JSONObject taskParam,
-            final Accumulator<String> sessionAggrStatAccumulator){
+            final Accumulator<String> sessionAggrStatAccumulator) {
+        // 为了使用我们后面的ValieUtils，所以，首先将所有的筛选参数拼接成一个连接串
         String startAge = ParamUtils.getParam(taskParam, Constants.PARAM_START_AGE);
         String endAge = ParamUtils.getParam(taskParam, Constants.PARAM_END_AGE);
         String professionals = ParamUtils.getParam(taskParam, Constants.PARAM_PROFESSIONALS);
@@ -237,103 +254,142 @@ public class UserVisitSessionAnalyzeSpark {
                 + (sex != null ? Constants.PARAM_SEX + "=" + sex + "|" : "")
                 + (keywords != null ? Constants.PARAM_KEYWORDS + "=" + keywords + "|" : "")
                 + (categoryIds != null ? Constants.PARAM_CATEGORY_IDS + "=" + categoryIds: "");
-        if (_parameter.endsWith("\\|")){
-            _parameter = _parameter.substring(0,_parameter.length()-1);
+
+        if(_parameter.endsWith("|")) {
+            _parameter = _parameter.substring(0, _parameter.length() - 1);
         }
+
         final String parameter = _parameter;
 
-        JavaPairRDD<String, String> filteredSessionid2AggrInfoRDD = sessionid2AggrInfoRDD.filter(new Function<Tuple2<String, String>, Boolean>() {
-            @Override
-            public Boolean call(Tuple2<String, String> tuple) throws Exception {
-                String aggrInfo = tuple._2;
-                //判断年龄是否在task指定参数范围内
-                if (!ValidUtils.between(aggrInfo, Constants.FIELD_AGE, parameter, Constants.PARAM_START_AGE,
-                        Constants.PARAM_END_AGE)) {
-                    return false;
-                }
-                //根据职业判断
-                if (!ValidUtils.in(aggrInfo, Constants.FIELD_PROFESSIONAL,
-                        parameter, Constants.PARAM_PROFESSIONALS)) {
-                    return false;
-                }
-                //根据城市判断
-                if (!ValidUtils.in(aggrInfo, Constants.FIELD_CITY,
-                        parameter, Constants.PARAM_CITIES)) {
-                    return false;
-                }
-                //根据关键字进行判断
-                if (!ValidUtils.in(aggrInfo, Constants.FIELD_SEARCH_KEYWORDS,
-                        parameter, Constants.PARAM_KEYWORDS)) {
-                    return false;
-                }
-                //根据点击商品品类进行判断
-                if (!ValidUtils.in(aggrInfo, Constants.FIELD_CLICK_CATEGORY_IDS,
-                        parameter, Constants.PARAM_CATEGORY_IDS)) {
-                    return false;
-                }
-                //该记录通过筛选，就要进行统计
-                Long visitLength = Long.valueOf(StringUtils.getFieldFromConcatString(aggrInfo,"\\|",Constants.FIELD_VISIT_LENGTH));
-                Long stepLength = Long.valueOf(StringUtils.getFieldFromConcatString(aggrInfo,"\\|",Constants.FIELD_STEP_LENGTH));
+        // 根据筛选参数进行过滤
+        JavaPairRDD<String, String> filteredSessionid2AggrInfoRDD = sessionid2AggrInfoRDD.filter(
 
-                calculateVisitLength(visitLength);
-                calculateStepLength(stepLength);
+                new Function<Tuple2<String,String>, Boolean>() {
 
+                    private static final long serialVersionUID = 1L;
+                    private  int count = 0;
+                    @Override
+                    public Boolean call(Tuple2<String, String> tuple) throws Exception {
+                        // 首先，从tuple中，获取聚合数据
+                        String aggrInfo = tuple._2;
+                        System.out.println(count++);
+                        // 接着，依次按照筛选条件进行过滤
+                        // 按照年龄范围进行过滤（startAge、endAge）
+                        if(!ValidUtils.between(aggrInfo, Constants.FIELD_AGE,
+                                parameter, Constants.PARAM_START_AGE, Constants.PARAM_END_AGE)) {
+                            return false;
+                        }
 
-                return true;
-            }
-            /**
-             * 计算访问时长范围
-             * @param visitLength
-             */
-            private void calculateVisitLength(long visitLength) {
-                if(visitLength >=1 && visitLength <= 3) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_1s_3s);
-                } else if(visitLength >=4 && visitLength <= 6) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_4s_6s);
-                } else if(visitLength >=7 && visitLength <= 9) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_7s_9s);
-                } else if(visitLength >=10 && visitLength <= 30) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_10s_30s);
-                } else if(visitLength > 30 && visitLength <= 60) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_30s_60s);
-                } else if(visitLength > 60 && visitLength <= 180) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_1m_3m);
-                } else if(visitLength > 180 && visitLength <= 600) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_3m_10m);
-                } else if(visitLength > 600 && visitLength <= 1800) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_10m_30m);
-                } else if(visitLength > 1800) {
-                    sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_30m);
-                }
-            }
+                        // 按照职业范围进行过滤（professionals）
+                        // 互联网,IT,软件
+                        // 互联网
+                        if(!ValidUtils.in(aggrInfo, Constants.FIELD_PROFESSIONAL,
+                                parameter, Constants.PARAM_PROFESSIONALS)) {
+                            return false;
+                        }
 
-            /**
-             * 计算访问步长范围
-             * @param stepLength
-             */
-            private void calculateStepLength(long stepLength) {
-                if(stepLength >= 1 && stepLength <= 3) {
-                    sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_1_3);
-                } else if(stepLength >= 4 && stepLength <= 6) {
-                    sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_4_6);
-                } else if(stepLength >= 7 && stepLength <= 9) {
-                    sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_7_9);
-                } else if(stepLength >= 10 && stepLength <= 30) {
-                    sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_10_30);
-                } else if(stepLength > 30 && stepLength <= 60) {
-                    sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_30_60);
-                } else if(stepLength > 60) {
-                    sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_60);
-                }
-            }
-        });
-        return  filteredSessionid2AggrInfoRDD;
+                        // 按照城市范围进行过滤（cities）
+                        // 北京,上海,广州,深圳
+                        // 成都
+                        if(!ValidUtils.in(aggrInfo, Constants.FIELD_CITY,
+                                parameter, Constants.PARAM_CITIES)) {
+                            return false;
+                        }
+
+                        // 按照性别进行过滤
+                        if(!ValidUtils.equal(aggrInfo, Constants.FIELD_SEX,
+                                parameter, Constants.PARAM_SEX)) {
+                            return false;
+                        }
+
+                        // 按照搜索词进行过滤
+                        if(!ValidUtils.in(aggrInfo, Constants.FIELD_SEARCH_KEYWORDS,
+                                parameter, Constants.PARAM_KEYWORDS)) {
+                            return false;
+                        }
+
+                        // 按照点击品类id进行过滤
+                        if(!ValidUtils.in(aggrInfo, Constants.FIELD_CLICK_CATEGORY_IDS,
+                                parameter, Constants.PARAM_CATEGORY_IDS)) {
+                            return false;
+                        }
+
+                        // 如果经过了之前的多个过滤条件之后，程序能够走到这里
+                        // 那么就说明，该session是通过了用户指定的筛选条件的，也就是需要保留的session
+                        // 那么就要对session的访问时长和访问步长，进行统计，根据session对应的范围
+                        // 进行相应的累加计数
+
+                        // 主要走到这一步，那么就是需要计数的session
+                        System.out.println("add session_count");
+                        sessionAggrStatAccumulator.add(Constants.SESSION_COUNT);
+
+                        // 计算出session的访问时长和访问步长的范围，并进行相应的累加
+                        long visitLength = Long.valueOf(StringUtils.getFieldFromConcatString(
+                                aggrInfo, "\\|", Constants.FIELD_VISIT_LENGTH));
+                        long stepLength = Long.valueOf(StringUtils.getFieldFromConcatString(
+                                aggrInfo, "\\|", Constants.FIELD_STEP_LENGTH));
+                        calculateVisitLength(visitLength);
+                        calculateStepLength(stepLength);
+
+                        return true;
+                    }
+
+                    /*
+                     * 计算访问时长范围
+                     * @param visitLength
+                     */
+                    private void calculateVisitLength(long visitLength) {
+                        if(visitLength >=1 && visitLength <= 3) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_1s_3s);
+                        } else if(visitLength >=4 && visitLength <= 6) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_4s_6s);
+                        } else if(visitLength >=7 && visitLength <= 9) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_7s_9s);
+                        } else if(visitLength >=10 && visitLength <= 30) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_10s_30s);
+                        } else if(visitLength > 30 && visitLength <= 60) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_30s_60s);
+                        } else if(visitLength > 60 && visitLength <= 180) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_1m_3m);
+                        } else if(visitLength > 180 && visitLength <= 600) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_3m_10m);
+                        } else if(visitLength > 600 && visitLength <= 1800) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_10m_30m);
+                        } else if(visitLength > 1800) {
+                            sessionAggrStatAccumulator.add(Constants.TIME_PERIOD_30m);
+                        }
+                    }
+
+                    /*
+                     * 计算访问步长范围
+                     * @param stepLength
+                     */
+                    private void calculateStepLength(long stepLength) {
+                        if(stepLength >= 1 && stepLength <= 3) {
+                            sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_1_3);
+                        } else if(stepLength >= 4 && stepLength <= 6) {
+                            sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_4_6);
+                        } else if(stepLength >= 7 && stepLength <= 9) {
+                            sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_7_9);
+                        } else if(stepLength >= 10 && stepLength <= 30) {
+                            sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_10_30);
+                        } else if(stepLength > 30 && stepLength <= 60) {
+                            sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_30_60);
+                        } else if(stepLength > 60) {
+                            sessionAggrStatAccumulator.add(Constants.STEP_PERIOD_60);
+                        }
+                    }
+
+                });
+        return filteredSessionid2AggrInfoRDD;
     }
+
     /**
      * 计算各session范围占比，并写入MySQL
      * @param value
      */
     private static void calculateAndPersistAggrStat(String value, long taskid) {
+
         // 从Accumulator统计串中获取值
         long session_count = Long.valueOf(StringUtils.getFieldFromConcatString(
                 value, "\\|", Constants.SESSION_COUNT));
@@ -370,6 +426,8 @@ public class UserVisitSessionAnalyzeSpark {
         long step_length_60 = Long.valueOf(StringUtils.getFieldFromConcatString(
                 value, "\\|", Constants.STEP_PERIOD_60));
 
+        System.out.println(Long.valueOf(StringUtils.getFieldFromConcatString(
+                value, "\\|", Constants.SESSION_COUNT)));
         // 计算各个访问时长和访问步长的范围
         double visit_length_1s_3s_ratio = NumberUtils.formatDouble(
                 (double)visit_length_1s_3s / (double)session_count, 2);
