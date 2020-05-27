@@ -12,10 +12,13 @@ import com.ibeifeng.sparkproject.MockData;
 import com.ibeifeng.sparkproject.conf.ConfigurationManager;
 import com.ibeifeng.sparkproject.constant.Constants;
 import com.ibeifeng.sparkproject.dao.ISessionAggrStatDAO;
+import com.ibeifeng.sparkproject.dao.ISessionRandomExtractDAO;
 import com.ibeifeng.sparkproject.dao.ITaskDAO;
 import com.ibeifeng.sparkproject.dao.factory.DAOFactory;
 import com.ibeifeng.sparkproject.domain.SessionAggrStat;
+import com.ibeifeng.sparkproject.domain.SessionRandomExtract;
 import com.ibeifeng.sparkproject.domain.Task;
+import com.ibeifeng.sparkproject.jdbc.JDBCHelper;
 import com.ibeifeng.sparkproject.util.*;
 import org.apache.spark.Accumulator;
 import org.apache.spark.SparkConf;
@@ -24,16 +27,15 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.hive.HiveContext;
 import scala.Tuple2;
-import sun.management.Agent;
 
-import java.util.Date;
-import java.util.Iterator;
+import java.util.*;
 
 
 public class UserVisitSessionAnalyzeSpark {
@@ -65,13 +67,15 @@ public class UserVisitSessionAnalyzeSpark {
 
         JavaPairRDD<String, String> filteredSessionid2AggrInfoRDD = filterSessionAndAggrStat(
                 sessionid2FullAggrInfoRDD, taskParam, sessionAggrStatAccumulator);
-        System.out.println(filteredSessionid2AggrInfoRDD.count());
 
 
+        randomExtractSession(task.getTaskid(),filteredSessionid2AggrInfoRDD);
         calculateAndPersistAggrStat(sessionAggrStatAccumulator.value(),task.getTaskid());
 
         sc.close();
     }
+
+
 
     /**
      * 获取SQLContext如果是在本地运行就生成SqlContext，如果实在生产环境运行就生成HiveContext对象
@@ -375,6 +379,119 @@ public class UserVisitSessionAnalyzeSpark {
         return filteredSessionid2AggrInfoRDD;
     }
 
+
+    private static void randomExtractSession(long taskid,JavaPairRDD<String, String> sessionid2AggrInfoRDD) {
+        JavaPairRDD<String, String> time2sessionidRDD = sessionid2AggrInfoRDD.mapToPair(new PairFunction<Tuple2<String, String>, String, String>() {
+            @Override
+            public Tuple2<String, String> call(Tuple2<String, String> Tuple) throws Exception {
+                String aggrInfo = Tuple._2;
+
+                String startTime = StringUtils.getFieldFromConcatString(aggrInfo, "\\|", Constants.FIELD_START_TIME);
+                String dateHour = DateUtils.getDateHour(startTime);
+
+                return new Tuple2<String, String>(dateHour, aggrInfo);
+            }
+        });
+
+        Map<String, Object> sessionCount = time2sessionidRDD.countByKey();
+        Map<String,Map<String,Long>> dateHourCount = new HashMap<>();
+        for (Map.Entry<String,Object> entry : sessionCount.entrySet() ){
+            String key = entry.getKey();
+            String date = key.split("_")[0];
+            String hour = key.split("_")[1];
+            Long count = Long.valueOf(String.valueOf(entry.getValue()));
+            Map<String,Long> hourCount = dateHourCount.get(date);
+            if(hourCount == null){
+                hourCount = new HashMap<String, Long>();
+                hourCount.put(hour,count);
+                dateHourCount.put(date,hourCount);
+            }else {
+                hourCount.put(hour, count);
+            }
+        }
+
+        int preDayCount = (int)100 / dateHourCount.size();
+
+        Map<String,Map<String, List<Integer>>> dateHourExtractMap = new HashMap<>();
+
+        for (Map.Entry<String,Map<String,Long>> entry : dateHourCount.entrySet()){
+            String date = entry.getKey();
+
+            Map<String,Long> hourCountMap = entry.getValue();
+            Random random = new Random();
+            long dateSessionCount = 0L;
+            for (long hourSessionCount : hourCountMap.values() ){
+                dateSessionCount += hourSessionCount;
+            }
+
+            Map<String,List<Integer>> hourExtractMap = dateHourExtractMap.get(date);
+            if (hourExtractMap == null){
+                hourExtractMap = new HashMap<>();
+                dateHourExtractMap.put(date,hourExtractMap);
+            }
+            for (Map.Entry<String,Long> hourCountEntry :hourCountMap.entrySet()){
+                String hour = hourCountEntry.getKey();
+                long count = hourCountEntry.getValue();
+
+                int hourExtractNumber = (int)(((double)count / (double)dateSessionCount) * preDayCount);
+
+                if(hourExtractNumber > count){
+                    hourExtractNumber = (int)count;
+                }
+                List<Integer> extractIndexList = hourExtractMap.get(hour);
+                if (extractIndexList == null){
+                    extractIndexList = new ArrayList<Integer>();
+                    hourExtractMap.put(hour,extractIndexList);
+                }
+                for(int i =0; i<hourExtractNumber;i++){
+                    int extractIndex = random.nextInt((int)count);
+                    while(extractIndexList.contains(extractIndex)){
+                        extractIndex = random.nextInt((int)count);
+                    }
+                    extractIndexList.add(extractIndex);
+                }
+            }
+
+            JavaPairRDD<String, Iterable<String>> time2sessionRDD = time2sessionidRDD.groupByKey();
+            time2sessionRDD.flatMapToPair(new PairFlatMapFunction<Tuple2<String, Iterable<String>>, String, String>() {
+                @Override
+                public Iterable<Tuple2<String, String>> call(Tuple2<String, Iterable<String>> Tuple) throws Exception {
+                    String dateHour = Tuple._1;
+                    String date = dateHour.split("_")[0];
+                    String hour = dateHour.split("_")[1];
+                    Iterator<String> aggrInfo = Tuple._2.iterator();
+                    List<Integer> extractIndexList= dateHourExtractMap.get(date).get(hour);
+                    List<Tuple2<String,String>> extractSessionids = new ArrayList<Tuple2<String,String>>();
+                    int index = 0;
+                    while(aggrInfo.hasNext()){
+                        String info = aggrInfo.next();
+                        if(extractIndexList.contains(index)){
+                            String sessionid = StringUtils.getFieldFromConcatString(info,"\\|",Constants.FIELD_SESSION_ID);
+                            SessionRandomExtract sessionRandomExtract = new SessionRandomExtract();
+                            String startTime = StringUtils.getFieldFromConcatString(info,"\\|",Constants.FIELD_START_TIME);
+                            String searchKeywords = StringUtils.getFieldFromConcatString(info,"\\|",Constants.FIELD_SEARCH_KEYWORDS);
+                            String clickCategoryIds = StringUtils.getFieldFromConcatString(info,"\\|",Constants.FIELD_CLICK_CATEGORY_IDS);
+
+                            sessionRandomExtract.setTaskid(taskid);
+                            sessionRandomExtract.setSessionid(sessionid);
+                            sessionRandomExtract.setStartTime(startTime);
+                            sessionRandomExtract.setSearchKeywords(searchKeywords);
+                            sessionRandomExtract.setClickCategoryIds(clickCategoryIds);
+
+                            ISessionRandomExtractDAO iSessionRandomExtractDAO = DAOFactory.getISessionRandomExtractDAO();
+                            iSessionRandomExtractDAO.insert(sessionRandomExtract);
+
+                            extractSessionids.add(new Tuple2<String,String>(sessionid,sessionid));
+
+                        }
+                        index ++;
+                    }
+                    return extractSessionids;
+                }
+            });
+
+        }
+    }
     /**
      * 计算各session范围占比，并写入MySQL
      * @param value
