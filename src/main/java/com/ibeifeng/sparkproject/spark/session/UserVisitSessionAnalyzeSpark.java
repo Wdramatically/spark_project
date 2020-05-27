@@ -17,7 +17,6 @@ import com.ibeifeng.sparkproject.dao.factory.DAOFactory;
 import com.ibeifeng.sparkproject.domain.SessionAggrStat;
 import com.ibeifeng.sparkproject.domain.Task;
 import com.ibeifeng.sparkproject.util.*;
-import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
@@ -31,6 +30,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.hive.HiveContext;
 import scala.Tuple2;
+import sun.management.Agent;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -267,19 +267,16 @@ public class UserVisitSessionAnalyzeSpark {
                 new Function<Tuple2<String,String>, Boolean>() {
 
                     private static final long serialVersionUID = 1L;
-                    private  int count = 0;
                     @Override
                     public Boolean call(Tuple2<String, String> tuple) throws Exception {
                         // 首先，从tuple中，获取聚合数据
                         String aggrInfo = tuple._2;
-                        System.out.println(count++);
                         // 接着，依次按照筛选条件进行过滤
                         // 按照年龄范围进行过滤（startAge、endAge）
                         if(!ValidUtils.between(aggrInfo, Constants.FIELD_AGE,
                                 parameter, Constants.PARAM_START_AGE, Constants.PARAM_END_AGE)) {
                             return false;
                         }
-
                         // 按照职业范围进行过滤（professionals）
                         // 互联网,IT,软件
                         // 互联网
@@ -287,7 +284,6 @@ public class UserVisitSessionAnalyzeSpark {
                                 parameter, Constants.PARAM_PROFESSIONALS)) {
                             return false;
                         }
-
                         // 按照城市范围进行过滤（cities）
                         // 北京,上海,广州,深圳
                         // 成都
@@ -295,32 +291,27 @@ public class UserVisitSessionAnalyzeSpark {
                                 parameter, Constants.PARAM_CITIES)) {
                             return false;
                         }
-
                         // 按照性别进行过滤
                         if(!ValidUtils.equal(aggrInfo, Constants.FIELD_SEX,
                                 parameter, Constants.PARAM_SEX)) {
                             return false;
                         }
-
                         // 按照搜索词进行过滤
                         if(!ValidUtils.in(aggrInfo, Constants.FIELD_SEARCH_KEYWORDS,
                                 parameter, Constants.PARAM_KEYWORDS)) {
                             return false;
                         }
-
                         // 按照点击品类id进行过滤
                         if(!ValidUtils.in(aggrInfo, Constants.FIELD_CLICK_CATEGORY_IDS,
                                 parameter, Constants.PARAM_CATEGORY_IDS)) {
                             return false;
                         }
-
                         // 如果经过了之前的多个过滤条件之后，程序能够走到这里
                         // 那么就说明，该session是通过了用户指定的筛选条件的，也就是需要保留的session
                         // 那么就要对session的访问时长和访问步长，进行统计，根据session对应的范围
                         // 进行相应的累加计数
 
                         // 主要走到这一步，那么就是需要计数的session
-                        System.out.println("add session_count");
                         sessionAggrStatAccumulator.add(Constants.SESSION_COUNT);
 
                         // 计算出session的访问时长和访问步长的范围，并进行相应的累加
@@ -421,7 +412,7 @@ public class UserVisitSessionAnalyzeSpark {
                 value, "\\|", Constants.STEP_PERIOD_7_9));
         long step_length_10_30 = Long.valueOf(StringUtils.getFieldFromConcatString(
                 value, "\\|", Constants.STEP_PERIOD_10_30));
-        long step_length_30_60 = Long.valueOf(StringUtils.getFieldFromConcatString(
+        long step_length_30_60 = Long.valueOf(StringUtils .getFieldFromConcatString(
                 value, "\\|", Constants.STEP_PERIOD_30_60));
         long step_length_60 = Long.valueOf(StringUtils.getFieldFromConcatString(
                 value, "\\|", Constants.STEP_PERIOD_60));

@@ -5,6 +5,8 @@ import org.apache.spark.AccumulatorParam;
 import com.ibeifeng.sparkproject.constant.Constants;
 import com.ibeifeng.sparkproject.util.StringUtils;
 
+import java.io.PrintStream;
+
 /**
  * session聚合统计Accumulator
  * 
@@ -61,6 +63,7 @@ public class SessionAggrStatAccumulator implements AccumulatorParam<String> {
 	@Override
 	public String addInPlace(String v1, String v2) {
 		return add(v1, v2);
+
 	}
 	
 	@Override
@@ -75,21 +78,26 @@ public class SessionAggrStatAccumulator implements AccumulatorParam<String> {
 	 * @return 更新以后的连接串
 	 */
 	public String add(String v1, String v2) {
+		System.out.println(v1 +" " + v2);
 		// 校验：v1为空的话，直接返回v2
 		if(StringUtils.isEmpty(v1)) {
 			return v2;
 		}
 		
 		// 使用StringUtils工具类，从v1中，提取v2对应的值，并累加1
-		String oldValue = StringUtils.getFieldFromConcatString(v1, "|", v2);
+		String oldValue = StringUtils.getFieldFromConcatString(v1, "\\|", v2);
+		System.out.println(oldValue);
 		if(oldValue != null) {
 			// 将范围区间原有的值，累加1
 			int newValue = Integer.valueOf(oldValue) + 1;
+			System.out.println("newvalue:" + newValue);
 			// 使用StringUtils工具类，将v1中，v2对应的值，设置成新的累加后的值
-			return StringUtils.setFieldInConcatString(v1, "\\|", v2, String.valueOf(newValue));
+			String resultString = StringUtils.setFieldInConcatString(v1, "\\|", v2, String.valueOf(newValue));
+			System.out.println("return:" + resultString);
+			return resultString;
 		}
 		
 		return v1;
 	}
-	
+
 }

@@ -5,7 +5,7 @@ package com.ibeifeng.sparkproject.domain;
  * @author Administrator
  *
  */
-public class SessionAggrStat {
+public class SessionAggrStat{
 	
 	private long taskid;
 	private long session_count;
