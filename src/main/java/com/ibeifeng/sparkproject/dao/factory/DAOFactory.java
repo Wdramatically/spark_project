@@ -7,12 +7,8 @@
 
 package com.ibeifeng.sparkproject.dao.factory;
 
-import com.ibeifeng.sparkproject.dao.ISessionAggrStatDAO;
-import com.ibeifeng.sparkproject.dao.ISessionRandomExtractDAO;
-import com.ibeifeng.sparkproject.dao.ITaskDAO;
-import com.ibeifeng.sparkproject.dao.daoimpl.SessionAggrStatDAOImpl;
-import com.ibeifeng.sparkproject.dao.daoimpl.SessionRandomExtractDAOImpl;
-import com.ibeifeng.sparkproject.dao.daoimpl.TaskDAOImpl;
+import com.ibeifeng.sparkproject.dao.*;
+import com.ibeifeng.sparkproject.dao.daoimpl.*;
 
 public class DAOFactory {
     public static ITaskDAO getTaskDAO() {
@@ -25,4 +21,14 @@ public class DAOFactory {
     public static ISessionRandomExtractDAO getISessionRandomExtractDAO(){
         return new SessionRandomExtractDAOImpl();
     }
+    public static ISessionDetailDAO getISessionDetailDAO(){
+        return new SessionDetailDAOImpl();
+    }
+    public static ITop10CategoryDAO getITop10CategoryDAO(){
+        return new Top10CategoryDAOImpl();
+    }
+    public static ITop10SessionDAO getITop10SessionDAO(){
+        return new Top10SessionDAOImpl();
+    }
+
 }

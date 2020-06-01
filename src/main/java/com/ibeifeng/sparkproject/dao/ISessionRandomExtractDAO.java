@@ -11,7 +11,7 @@ public interface ISessionRandomExtractDAO {
 
 	/**
 	 * 插入session随机抽取
-	 * @param sessionAggrStat 
+	 * @param sessionRandomExtract
 	 */
 	void insert(SessionRandomExtract sessionRandomExtract);
 	
